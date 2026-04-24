@@ -18,142 +18,65 @@ import Register from "./pages/Register"
 function App(){
 
 const [user,setUser] = useState(null)
-const [role,setRole] = useState(null)
 const [loading,setLoading] = useState(true)
 
 useEffect(()=>{
 loadUser()
-
-// 🔥 LISTEN FOR AUTH CHANGE
-const { data: listener } = supabase.auth.onAuthStateChange(()=>{
-loadUser()
-})
-
-return ()=> listener.subscription.unsubscribe()
-
 },[])
 
 async function loadUser(){
-
 const { data } = await supabase.auth.getUser()
 
 if(data.user){
-
 setUser(data.user)
-
-// 🔥 ALWAYS FETCH ROLE
-const { data: userData } = await supabase
-.from("users")
-.select("role")
-.eq("id", data.user.id)
-.single()
-
-setRole(userData?.role)
-
-}else{
-setUser(null)
-setRole(null)
 }
 
 setLoading(false)
 }
 
-// 🔒 PROTECTED ROUTE
-function ProtectedRoute({ children }){
+//////////////////////////////////////////////////
 
-if(loading) return <p>Loading...</p>
+if(loading){
+return <div className="p-10">Loading...</div>
+}
+
+//////////////////////////////////////////////////
 
 if(!user){
-return <Navigate to="/login" />
+return (
+<Routes>
+<Route path="*" element={<Login/>}/>
+<Route path="/register" element={<Register/>}/>
+</Routes>
+)
 }
 
-return children
-}
-
-// 🎯 CORRECT ORDER (IMPORTANT)
-function LayoutWrapper({ children }){
-
-if(role === "admin"){
-return <AdminLayout>{children}</AdminLayout>
-}
-
-if(role === "dealer"){
-return <DealerLayout>{children}</DealerLayout>
-}
-
-return <CustomerLayout>{children}</CustomerLayout>
-}
+//////////////////////////////////////////////////
 
 return(
 
 <Routes>
 
-{/* PUBLIC */}
-<Route path="/login" element={<Login/>}/>
-<Route path="/register" element={<Register/>}/>
+{/* CUSTOMER */}
+<Route path="/" element={<CustomerLayout/>}>
+<Route index element={<Home/>}/>
+<Route path="cars" element={<BrowseCars/>}/>
+<Route path="car/:id" element={<CarDetails/>}/>
+<Route path="messages" element={<Messages/>}/>
+</Route>
 
-<Route path="/" element={
-<ProtectedRoute>
-{
-role === "admin" ? (
-<AdminLayout>
-<AdminDashboard/>
-</AdminLayout>
-) : role === "dealer" ? (
-<DealerLayout>
-<DealerDashboard/>
-</DealerLayout>
-) : (
-<CustomerLayout>
-<Home/>
-</CustomerLayout>
-)
-}
-</ProtectedRoute>
-}/>
+{/* DEALER */}
+<Route path="/dealer" element={<DealerLayout/>}>
+<Route index element={<DealerDashboard/>}/>
+<Route path="messages" element={<Messages/>}/>
+</Route>
 
-<Route path="/cars" element={
-<ProtectedRoute>
-<LayoutWrapper>
-<BrowseCars/>
-</LayoutWrapper>
-</ProtectedRoute>
-}/>
+{/* ADMIN */}
+<Route path="/admin" element={<AdminLayout/>}>
+<Route index element={<AdminDashboard/>}/>
+</Route>
 
-<Route path="/car/:id" element={
-<ProtectedRoute>
-<LayoutWrapper>
-<CarDetails/>
-</LayoutWrapper>
-</ProtectedRoute>
-}/>
-
-<Route path="/messages" element={
-<ProtectedRoute>
-<LayoutWrapper>
-<Messages/>
-</LayoutWrapper>
-</ProtectedRoute>
-}/>
-
-{/* 🔥 ROLE-SPECIFIC DASHBOARDS */}
-<Route path="/dealer" element={
-<ProtectedRoute>
-<DealerLayout>
-<DealerDashboard/>
-</DealerLayout>
-</ProtectedRoute>
-}/>
-
-<Route path="/admin" element={
-<ProtectedRoute>
-<AdminLayout>
-<AdminDashboard/>
-</AdminLayout>
-</ProtectedRoute>
-}/>
-
-{/* DEFAULT */}
+{/* FALLBACK */}
 <Route path="*" element={<Navigate to="/" />} />
 
 </Routes>

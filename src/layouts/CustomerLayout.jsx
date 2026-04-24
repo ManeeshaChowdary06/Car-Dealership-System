@@ -1,8 +1,8 @@
-import { useNavigate } from "react-router-dom"
+import { Outlet, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { supabase } from "../services/supabaseClient"
 
-function CustomerLayout({ children }){
+function CustomerLayout(){
 
 const navigate = useNavigate()
 const [user,setUser] = useState(null)
@@ -29,51 +29,63 @@ setRole(userData?.role)
 }
 }
 
-// 🔥 CHANGE ROLE
-async function handleRoleChange(newRole){
+//////////////////////////////////////////////////
+// ROLE CHANGE (FINAL WORKING)
+//////////////////////////////////////////////////
 
-await supabase
+async function handleRoleChange(e){
+
+const newRole = e.target.value
+
+if(!user) return
+
+const { error } = await supabase
 .from("users")
 .update({ role: newRole })
 .eq("id", user.id)
 
-window.location.reload()
+if(error){
+alert("Role update failed")
+return
 }
 
-return(
+// 🔥 FULL REDIRECT (NO STATE BUGS)
+if(newRole === "dealer"){
+window.location.href = "/dealer"
+}
+else if(newRole === "admin"){
+window.location.href = "/admin"
+}
+else{
+window.location.href = "/"
+}
 
+}
+
+//////////////////////////////////////////////////
+
+return(
 <div>
 
-{/* 🔥 NAVBAR */}
-<div className="flex justify-between items-center px-10 py-4 bg-white shadow">
+{/* NAVBAR */}
+<div className="flex justify-between px-10 py-4 bg-white shadow">
 
 <h1
 onClick={()=>navigate("/")}
-className="text-xl font-bold text-indigo-600 cursor-pointer"
+className="text-indigo-600 font-bold cursor-pointer"
 >
 MotoVerse
 </h1>
 
-<div className="flex items-center gap-6">
+<div className="flex items-center gap-4">
 
-<button onClick={()=>navigate("/")} className="text-gray-600 hover:text-black">
-Home
-</button>
-
-<button onClick={()=>navigate("/cars")} className="text-gray-600 hover:text-black">
-Browse
-</button>
+<button onClick={()=>navigate("/")}>Home</button>
+<button onClick={()=>navigate("/cars")}>Browse</button>
 
 {/* 🔥 ROLE SWITCH */}
-<div className="flex items-center gap-2">
-
-<span className="text-sm text-gray-500">
-Role:
-</span>
-
 <select
 value={role}
-onChange={(e)=>handleRoleChange(e.target.value)}
+onChange={handleRoleChange}
 className="border px-2 py-1 rounded"
 >
 <option value="customer">Customer</option>
@@ -85,11 +97,9 @@ className="border px-2 py-1 rounded"
 
 </div>
 
-</div>
-
-{/* PAGE */}
-<div>
-{children}
+{/* CONTENT */}
+<div className="p-10">
+<Outlet/>
 </div>
 
 </div>
